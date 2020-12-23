@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="4415deb1-7b88-439d-8653-12cc3b7ea967" name="114.213.234.246">
+        <fileTransfer rootFolder="/home/amax/lab_data/jiaxin" accessType="SFTP" host="114.213.234.246" port="22" sshConfigId="e654e5a0-cba5-45fd-b88b-9bb8215fb679" sshConfig="amax@114.213.234.246:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

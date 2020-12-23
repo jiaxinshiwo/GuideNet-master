@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [{
+        "name": "Python: Current File",
+        "type": "python",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal",
+        "args": [
+            "--root_path", "data",
+            "--video_path", "Chole_test/Frames/Full",
+            "--annotation_path", "Chole_test/Annotation/data.pkl",
+            "--result_path", "results",
+            "--datasets", "cholec2019",
+            "--model", "cnnlstm",
+            "--n_classes", "7",
+            "--batch_size", "16",
+            "--n_threads", "4",
+            "--checkpoint", "5",
+            "--fc1", "128",
+            "--fc2", "64",
+            "--drop_p", "0.2",
+            "--cnn_embed_dim", "128",
+            "--h_LSTM_layers", "3",
+            "--h_LSTM", "128",
+            "--LSTM_FC_dim", "128"
+        ]
+    }]
+}
