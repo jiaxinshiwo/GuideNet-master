@@ -18,13 +18,13 @@ n_sample_for_each_video = 32
 batch_size = 32
 
 # Stage
-is_finetune = True
-is_pretrain_guide = False
+is_finetune = False
+is_pretrain_guide = True
 is_guide = False
 
 # train
-is_finetune_train = True
-is_pretrain_train = False
+is_finetune_train = False
+is_pretrain_train = True
 is_guide_train = False
 
 # test
@@ -81,7 +81,7 @@ if is_finetune:  # if finetune the CNN model
 elif is_pretrain_guide:  # if pretrain the guide model
     is_finetune = False  # is_finetune must false
     is_guide = False
-    target_transform = tt.ClassLabel()
+    target_transform = None
     dataloaders_dict = make_dataloader_dict(root_dir=root_dir, annotation_path=anna_dir, is_finetune=is_finetune,
                                             is_guide=is_guide, batch_size=batch_size,
                                             target_transform=target_transform,
@@ -101,7 +101,8 @@ elif is_pretrain_guide:  # if pretrain the guide model
 elif is_guide:  # if guide model train
     is_finetune = False  # is_finetune must false
     is_pretrain_guide = False
-    target_transform = tt.FlowLabel()
+    # target_transform = tt.FlowLabel()
+    target_transform = None
     dataloaders_dict = make_dataloader_dict(root_dir=root_dir, annotation_path=anna_dir, is_finetune=is_finetune,
                                             is_guide=is_guide, batch_size=batch_size,
                                             target_transform=target_transform,

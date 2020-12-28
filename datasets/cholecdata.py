@@ -122,60 +122,60 @@ def get_related_sample(current_sample, datalist, is_previous):
                 return item
 
 
-def make_pretrain_dataset(root_dir, annotation_path, subset, n_sample_for_each_video, sample_duration):
-    """Formatted as: sample = {
-        'video' : video path ', segment' : start and end frame ', n_frames' : total frames, 'video_id' ：
-        video id , 'label' : true label , 'frame_indices' : frames id
-    }
-
-    Args:
-        root_dir:
-        annotation_path:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
-        subset:
-        n_sample_for_each_video:
-        sample_duration:
-    """
-    data = load_annotation_data(annotation_path)
-    sub_data = get_subset(data, subset)
-    class_to_idx = get_class_labels(data)
-    idx_to_class = {}
-    for name, label in class_to_idx.items():
-        idx_to_class[label] = name
-
-    dataset = []
-    pbar = tqdm(range(len(sub_data)))
-    for i in pbar:
-        pbar.set_description('loading {} set \t [{}/{}]'.format(subset, i + 1, len(sub_data)))
-        sample = sub_data[i]
-        video_path = os.path.join(root_dir, sample['video'], sample['step'])
-        sample['video_path'] = video_path
-        sample['last'] = class_to_idx[sub_data[i]['last']]
-        sample['current'] = class_to_idx[sub_data[i]['current']]
-        sample['next'] = class_to_idx[sub_data[i]['next']]
-
-        n_frames = sample['n_frames']  # n_frames handle the step of the video
-        start_frame = sample['segment'][0]
-        end_frame = sample['segment'][1]
-        if n_sample_for_each_video == 1:  # Number of validation samples for each activity, add all image to mem， for test
-            sample['frame_indices'] = list(range(start_frame, end_frame + 1))
-            dataset.append(sample)
-        else:  # split video into small samples with step
-            if n_sample_for_each_video > 1:
-                step = max(1, math.ceil((n_frames - 1 - sample_duration) /
-                                        (n_sample_for_each_video - 1)))
-            else:
-                step = sample_duration
-            for j in range(start_frame, end_frame, step):
-                sample_j = copy.deepcopy(sample)
-                if j + sample_duration < n_frames + start_frame:
-                    frame_indices = list(
-                        range(j, min(n_frames + start_frame, j + sample_duration)))
-                else:
-                    frame_indices = list(range(n_frames + start_frame - sample_duration, n_frames + start_frame))
-                sample_j['frame_indices'] = frame_indices
-                dataset.append(sample_j)
-
-    return dataset, idx_to_class
+# def make_pretrain_dataset(root_dir, annotation_path, subset, n_sample_for_each_video, sample_duration):
+#     """Formatted as: sample = {
+#         'video' : video path ', segment' : start and end frame ', n_frames' : total frames, 'video_id' ：
+#         video id , 'label' : true label , 'frame_indices' : frames id
+#     }
+#
+#     Args:
+#         root_dir:
+#         annotation_path:
+#         subset:
+#         n_sample_for_each_video:
+#         sample_duration:
+#     """
+#     data = load_annotation_data(annotation_path)
+#     sub_data = get_subset(data, subset)
+#     class_to_idx = get_class_labels(data)
+#     idx_to_class = {}
+#     for name, label in class_to_idx.items():
+#         idx_to_class[label] = name
+#
+#     dataset = []
+#     pbar = tqdm(range(len(sub_data)))
+#     for i in pbar:
+#         pbar.set_description('loading {} set \t [{}/{}]'.format(subset, i + 1, len(sub_data)))
+#         sample = sub_data[i]
+#         video_path = os.path.join(root_dir, sample['video'], sample['step'])
+#         sample['video_path'] = video_path
+#         sample['last'] = class_to_idx[sub_data[i]['last']]
+#         sample['current'] = class_to_idx[sub_data[i]['current']]
+#         sample['next'] = class_to_idx[sub_data[i]['next']]
+#
+#         n_frames = sample['n_frames']  # n_frames handle the step of the video
+#         start_frame = sample['segment'][0]
+#         end_frame = sample['segment'][1]
+#         if n_sample_for_each_video == 1:  # Number of validation samples for each activity, add all image to mem， for test
+#             sample['frame_indices'] = list(range(start_frame, end_frame + 1))
+#             dataset.append(sample)
+#         else:  # split video into small samples with step
+#             if n_sample_for_each_video > 1:
+#                 step = max(1, math.ceil((n_frames - 1 - sample_duration) /
+#                                         (n_sample_for_each_video - 1)))
+#             else:
+#                 step = sample_duration
+#             for j in range(start_frame, end_frame, step):
+#                 sample_j = copy.deepcopy(sample)
+#                 if j + sample_duration < n_frames + start_frame:
+#                     frame_indices = list(
+#                         range(j, min(n_frames + start_frame, j + sample_duration)))
+#                 else:
+#                     frame_indices = list(range(n_frames + start_frame - sample_duration, n_frames + start_frame))
+#                 sample_j['frame_indices'] = frame_indices
+#                 dataset.append(sample_j)
+#
+#     return dataset, idx_to_class
 
 
 
@@ -269,6 +269,46 @@ def make_guide_dataset(root_dir, annotation_path, subset, n_sample_for_each_vide
             sub_dataset.append(item)
     return sub_dataset, idx_to_class_all
 
+def make_pretrain_dataset(root_dir, annotation_path, subset, n_sample_for_each_video, sample_duration):
+    data = load_annotation_data(annotation_path)
+    full_data = get_subset(data, "all")  # add all data
+    class_to_idx = get_class_labels(data)
+    idx_to_class_all = {}
+    for name, label in class_to_idx.items():
+        idx_to_class_all[label] = name
+
+    dataset = []
+    pbar = tqdm(range(len(full_data)))
+    for i in pbar:
+        pbar.set_description('loading guide data \t [{}/{}]'.format(i + 1, len(full_data)))
+        sample = full_data[i]
+        video_path=os.path.join(root_dir,sample['video'])
+        sample['video_path']=video_path
+        n_frames=sample['n_frames']
+        if n_sample_for_each_video == 1:  # Number of validation samples for each activity, for test
+            sample['frame_indices'] = list(range(1, n_frames))
+        else:  # split video into small samples with step
+            if n_sample_for_each_video > 1:
+                step = max(1, math.ceil((n_frames - 1 - sample_duration) /
+                                        (n_sample_for_each_video - 1)))
+            else:
+                step = sample_duration
+            for j in range(1, n_frames, step):
+                sample_j = {}
+                sample_j['video_path']=video_path
+                sample_j['video']=sample['video']
+                target=[]
+                if j + sample_duration < n_frames:
+                    frame_indices = list(range(j, min(n_frames, j + sample_duration)))
+                    target.append(min(n_frames, j + sample_duration))
+                else:
+                    frame_indices = list(range(n_frames - sample_duration, n_frames))
+                    target.append(n_frames)
+                sample_j['frame_indices'] = frame_indices
+                target.append(n_frames)
+                sample_j['target']=target
+                dataset.append(sample_j)
+    return dataset,idx_to_class_all
 
 def make_dataloader_dict(root_dir, annotation_path, is_finetune, is_guide, batch_size, spatial_transform,
                          temporal_transform,
@@ -333,9 +373,7 @@ class CholecData(data.Dataset):
                                                             n_samples_for_each_video,
                                                             sample_duration)
         elif not is_guide and not is_finetune:  # pretrain
-            self.data, self.class_name = make_pretrain_dataset(root_path, annotation_path, subset,
-                                                               n_samples_for_each_video,
-                                                               sample_duration)
+            self.data, self.class_name = make_pretrain_dataset(root_path, annotation_path, subset,n_samples_for_each_video,sample_duration)
         else:
             logging.error("label set error")
         self.spatial_transform = spatial_transform
@@ -358,6 +396,7 @@ class CholecData(data.Dataset):
                 clip = self.spatial_transform(clip)
             target = torch.tensor(target)
             return clip, target
+
         elif self.is_guide:  # guide
             clip = {}
             status_name = {'previous_sample', 'current_sample', 'future_sample'}
@@ -376,7 +415,22 @@ class CholecData(data.Dataset):
                     target = self.target_transform(target)
                     target = torch.tensor(target)
             return clip, target
+
         elif not self.is_guide and not self.is_finetune:  # pretrain
+            # path = self.data[index]['video_path']
+            # frame_indices = self.data[index]['frame_indices']
+            # if self.temporal_transform is not None:
+            #     frame_indices = self.temporal_transform(frame_indices)
+            # clip = self.loader(path, frame_indices)
+            # if self.spatial_transform is not None:
+            #     self.spatial_transform.randomize_parameters()
+            #     clip = [self.spatial_transform(img) for img in clip]
+            # clip = torch.stack(clip, 0)
+            # target = self.data[index]
+            # if self.target_transform is not None:
+            #     target = self.target_transform(target)
+            #     target = torch.tensor(target)
+            # return clip, target
             path = self.data[index]['video_path']
             frame_indices = self.data[index]['frame_indices']
             if self.temporal_transform is not None:
@@ -386,10 +440,11 @@ class CholecData(data.Dataset):
                 self.spatial_transform.randomize_parameters()
                 clip = [self.spatial_transform(img) for img in clip]
             clip = torch.stack(clip, 0)
-            target = self.data[index]
-            if self.target_transform is not None:
+            target = self.data[index]['target']
+            if self.target_transform is not None:  # why one label
                 target = self.target_transform(target)
                 target = torch.tensor(target)
+            target = torch.tensor(target)
             return clip, target
 
     def __len__(self):

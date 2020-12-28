@@ -113,11 +113,8 @@ def make_json_file(label_path, txt_label_path, file_name):
             'n_frames': len(frames),
             'frame_indices': frames,
             'train': train_slice,
-            'train_regression': train_regression,
             'test': test_slice,
-            'test_regression': test_regression,
             'val': val_slice,
-            'val_regression': val_regression
         }
         label_json['database'].append(sample)
     subset = reset_subset(len(label_json['database']))

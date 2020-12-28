@@ -113,6 +113,83 @@ def model_test(model, dataloaders, criterion):
     test_acc = test_corrects.double() / len(dataloaders['test'].dataset)
     logging.info('{} Loss: {:.4f} Acc: {:.4f}'.format('Test', test_loss, test_acc))
 
+def model_train_CnnLstm(model, dataloaders, criterion, optimizer, checkpoint_path, num_epochs):
+    model = nn.DataParallel(model)
+    model.to(device)
+    since = time.time()
+
+    val_acc_history = []
+
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_loss = 10000.0
+    for epoch in range(num_epochs):
+        logging.info('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        logging.info('-' * 10)
+
+        # Each epoch has a training and validation phase
+        for phase in ['train', 'val']:
+            if phase == 'train':
+                model.train()  # Set model to training mode
+            else:
+                model.eval()  # Set model to evaluate mode
+
+            running_loss = 0.0
+
+            # Iterate over data.
+            for i, (inputs, labels) in enumerate(dataloaders[phase]):
+                inputs = inputs.to(device)
+                labels = labels.to(device)
+
+                tel_labels = labels[:, 0]
+                time_labels = labels[:, 1]
+                # 计算进度以及剩余时间,将进度换成小数，将剩余时间化为 min,并且除以s_norm 25*60*5
+                regression_labels = [torch.true_divide(tel_labels[i], time_labels[i]) for i in range(len(tel_labels))]
+                rsd_labels = torch.true_divide((time_labels - tel_labels), 7500)
+
+                # zero the parameter gradients
+                optimizer.zero_grad()
+                # track history only in train
+                with torch.set_grad_enabled(phase == 'train'):
+                    outputs = model(inputs)
+                    tel_predict = torch.true_divide(tel_labels[i], 7500)
+                    rsd_predict = [torch.true_divide(tel_predict[i],outputs[i])-tel_predict[i] for i in range(len(regression_labels))]
+                    loss_reg = criterion(outputs, regression_labels)
+                    loss_label = criterion(rsd_predict, rsd_labels)
+                    loss = loss_reg + loss_label
+
+                    # backward + optimize only if in training phase
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+
+                # statistics
+                running_loss += loss.item() * inputs.size(0)
+                # running_corrects += torch.sum(preds == labels.data)
+
+            epoch_loss = running_loss / len(dataloaders[phase].dataset)
+            # epoch_acc = running_corrects.double() / len(dataloaders[phase].dataset)
+
+            logging.info('{} Loss: {:.4f}'.format(phase, epoch_loss))
+
+            # deep copy the model
+            if phase == 'val' and epoch_loss < best_loss:
+                logging.info("Acc improved from {} to {}".format(best_loss, epoch_loss))
+                best_loss = epoch_loss
+                best_model_wts = copy.deepcopy(model.state_dict())
+                torch.save(model, checkpoint_path.format(epoch))
+            if phase == 'val':
+                val_acc_history.append(epoch_loss)
+
+    time_elapsed = time.time() - since
+    logging.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+    logging.info('Best val loss: {:4f}'.format(best_loss))
+
+    # load best model checkpoint
+    model.load_state_dict(best_model_wts)
+    torch.save(model, checkpoint_path.format('best'))
+    logging.info('Model saved at {}'.format(checkpoint_path.format('best')))
+    return model, val_acc_history
+
 
 def model_guide_train(model_predict, model_previous, model_future, dataloders, criterion_pg,
                       criterion_fu, optimizer, checkpoint_path, num_epochs, lambda_1_pt, lambda_2_pt):
@@ -299,7 +376,7 @@ def pretrain_guide(dataloaders_dict, cnn_weights, out_path, num_epochs, lr=1e-2,
     :param out_path: model weights save path
     :param num_epochs: epochs number
     """
-    logging.info('Start pretrain CNN LSTM')
+    logging.info('Start train CNN LSTM')
     cnn_model = torch.load(cnn_weights)
     cnn_dict = cnn_model.state_dict()
 
